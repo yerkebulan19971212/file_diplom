@@ -1,7 +1,7 @@
-# from autocorrect import Speller
+from autocorrect import Speller
 import time
 #
-# spell = Speller(lang='ru')
+spell = Speller(lang='ru')
 # t0 = time.time()
 # print(spell('орфаграфит'))
 # print(spell('одтн'))

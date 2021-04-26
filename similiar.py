@@ -67,14 +67,14 @@ class LSI(object):
                 self.A[i, j] = (self.A[i, j] / wordsPerDoc[j]) * log(float(cols) / docsPerWord[i])
 
     def find(self):
-        self.prepare()
+        # self.prepare()
         idx = self.find_word
-        if idx < 0:
-            print('слово невстерчается')
-            return []
-        if not idx in self.keys:
-            print('слово отброшено как не имеющее значения которое через stopwords')
-            return []
+        # if idx < 0:
+        #     print('слово невстерчается')
+        #     return []
+        # if not idx in self.keys:
+        #     print('слово отброшено как не имеющее значения которое через stopwords')
+        #     return []
         return zip(self.indexes, self.docs)
 
 
@@ -92,10 +92,10 @@ docs = [
     "В Стокгольме и Осло сегодня состоится вручение Нобелевских премий"
 ]
 ignorechars = ''',:'!'''
-word = "Полиция"
+word = "sdasd"
 lsa = LSI([], ignorechars, docs, word)
 # lsa.build()
 # lsa.calc()
-
+print(lsa.find())
 for res, red in lsa.find():
     print(res, red, docs[res])

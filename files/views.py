@@ -4,9 +4,10 @@ import pdfplumber
 from rest_framework.response import Response
 from rest_framework.generics import CreateAPIView
 from numpy import unicode
-import time
 from nltk.stem import SnowballStemmer
 import nltk.data
+from autocorrect import Speller
+spell = Speller(lang='ru')
 
 
 stemmer = SnowballStemmer("russian")
@@ -62,6 +63,7 @@ class LSI(object):
     def build(self):
         self.keys = [k for k in self.wdict.keys() if len(self.wdict[k]) > 0]
         self.keys.sort()
+
         # self.A = zeros([len(self.keys), len(self.docs)])
         # for i, k in enumerate(self.keys):
         #     for d in self.wdict[k]:
@@ -90,8 +92,6 @@ class LSI(object):
 class sdfk(CreateAPIView):
 
     def post(self, request, *args, **kwargs):
-        t0 = time.time()
-
         pdf_list = [{
                 "name": "Name",
                 "count": 17,
@@ -102,7 +102,7 @@ class sdfk(CreateAPIView):
                 ]
             }]
         files = request.POST.getlist('title')
-        keys = request.POST.get('key').split(" ")
+        keys = [spell(word) for word in request.POST.get('key').split(" ")]
         files_list = [i.split(',') for i in files]
         ignorechars = ''',:'!'''
 
@@ -115,44 +115,41 @@ class sdfk(CreateAPIView):
 
             if "pdf" in file[2]:
                 with pdfplumber.open(r'{}'.format(filename)) as pdf:
+                    sentences = []
                     for k, j in enumerate(pdf.pages):
                         pages_text = tokenizer.tokenize(j.extract_text())
-                        sentences = []
                         for key in keys:
                             lsa = LSI([], ignorechars, pages_text, key)
                             for res in lsa.find():
                                 # print(res, pages_text[res].strip().rstrip("\n"))
                                 sentences.append({
-                                    "page": k,
+                                    "page": k + 1,
                                     "text": pages_text[res]
                                 })
-                        if sentences:
-                            pdf_list.append({
-                                "name": file[1],
-                                "count": len(sentences),
-                                "sentences": sentences
-                            })
-            else:
-                doc = docx.Document(filename)
-                for k, j in enumerate(doc.paragraphs):
-                    pages_text = tokenizer.tokenize(j.text)
-                    sentences = []
-                    for key in keys:
-                        lsa = LSI([], ignorechars, pages_text, key)
-                        for res in lsa.find():
-                            # print(res, pages_text[res].strip().rstrip("\n"))
-                            sentences.append({
-                                "page": k,
-                                "text": pages_text[res]
-                            })
                     if sentences:
                         pdf_list.append({
                             "name": file[1],
                             "count": len(sentences),
                             "sentences": sentences
                         })
-        # print(pdf_list)
-        # print(len(pdf_list))
-        t1 = time.time()
-        print(t1-t0)
+            else:
+                doc = docx.Document(filename)
+                sentences = []
+                for k, j in enumerate(doc.paragraphs):
+                    pages_text = tokenizer.tokenize(j.text)
+                    for key in keys:
+                        lsa = LSI([], ignorechars, pages_text, key)
+                        for res in lsa.find():
+                            # print(res, pages_text[res].strip().rstrip("\n"))
+                            sentences.append({
+                                "page": k + 1,
+                                "text": pages_text[res]
+                            })
+                if sentences:
+                    pdf_list.append({
+                        "name": file[1],
+                        "count": len(sentences),
+                        "sentences": sentences
+                    })
+
         return Response({"status": True, "message": "some text", "list": pdf_list})
